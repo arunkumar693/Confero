@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  body {
+    @apply bg-background text-text font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(109,40,217,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(14,165,233,0.10) 0%, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-5 py-2.5 bg-primary hover:bg-primary/90 active:scale-95 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-surface hover:bg-white/10 active:scale-95 border border-white/10 text-white rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer;
+  }
+
+  .btn-danger {
+    @apply px-5 py-2.5 bg-accent hover:bg-accent/90 active:scale-95 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-accent/30 cursor-pointer;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all duration-200;
+  }
+
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+  }
+
+  .spinner {
+    @apply inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin;
+  }
+}
