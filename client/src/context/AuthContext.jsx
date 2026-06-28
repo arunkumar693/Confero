@@ -1,75 +1,103 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sm_user')); } catch { return null; }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('sm_token'));
   const [loading, setLoading] = useState(true);
 
+  // Verify token on mount
   useEffect(() => {
-    if (token) {
-      fetch('http://localhost:5000/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
+    const verifyToken = async () => {
+      if (!token) { setLoading(false); return; }
+      try {
+        const { data } = await api.get('/auth/me');
         if (data.success) {
           setUser(data.user);
+          localStorage.setItem('sm_user', JSON.stringify(data.user));
         } else {
           logout();
         }
-      })
-      .catch(() => logout())
-      .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+      } catch {
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+    verifyToken();
+  }, []);
 
-  const login = async (email, password) => {
-    const res = await fetch('http://localhost:5000/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return { success: true };
-    }
-    return { success: false, message: data.message };
+  const persistAuth = (userData, tokenData) => {
+    setUser(userData);
+    setToken(tokenData);
+    localStorage.setItem('sm_user', JSON.stringify(userData));
+    localStorage.setItem('sm_token', tokenData);
   };
 
+  /**
+   * Register a new account. Returns { success, requiresOTP, email, message }
+   */
   const register = async (username, email, password) => {
-    const res = await fetch('http://localhost:5000/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
-    });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return { success: true };
-    }
-    return { success: false, message: data.message };
+    const { data } = await api.post('/auth/register', { username, email, password });
+    return data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
+  /**
+   * Step 1 of login: validate credentials, triggers OTP email.
+   * Returns { success, requiresOTP, email, message }
+   */
+  const loginStep1 = async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password });
+    return data;
   };
+
+  /**
+   * Step 2 of login: verify OTP, receive JWT.
+   */
+  const loginStep2 = async (email, otp) => {
+    const { data } = await api.post('/auth/login/verify-otp', { email, otp });
+    if (data.success && data.token) {
+      persistAuth(data.user, data.token);
+    }
+    return data;
+  };
+
+  /**
+   * Legacy direct login (fallback if OTP email fails)
+   */
+  const login = useCallback(async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password });
+    if (data.success && data.token) {
+      persistAuth(data.user, data.token);
+    }
+    return data;
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('sm_token');
+    localStorage.removeItem('sm_user');
+  }, []);
+
+  const updateUser = useCallback((updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('sm_user', JSON.stringify(updatedUser));
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, token, loading, register, loginStep1, loginStep2, login, logout, updateUser }}>
+      {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };

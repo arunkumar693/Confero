@@ -7,17 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0a0a0f',
-        surface: '#16161d',
-        primary: '#6d28d9',
-        secondary: '#0ea5e9',
-        accent: '#f43f5e',
-        text: '#f8fafc',
-        muted: '#94a3b8'
+        brand: {
+          purple: '#8b5cf6',
+          pink: '#ec4899',
+          orange: '#f97316',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      }
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        '2xl': '20px',
+        '3xl': '24px',
+      },
+      animation: {
+        'bounce-slow': 'bounce 1.5s infinite',
+      },
     },
   },
   plugins: [],

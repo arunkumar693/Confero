@@ -31,30 +31,61 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [8, "Password must be at least 8 characters"],
-      select: false, // Never return password in queries by default
+      select: false, // Never returned in queries by default
+    },
+    // ─── Social Profile Fields ─────────────────────────────
+    displayName: {
+      type: String,
+      trim: true,
+      maxlength: [50, "Display name must be at most 50 characters"],
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [150, "Bio must be at most 150 characters"],
+      default: "",
+    },
+    avatar: {
+      type: String,
+      default: "", // Cloudinary URL stored here
+    },
+    // ─── Social Graph ──────────────────────────────────────
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // ─── Account Status ────────────────────────────────────
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    // ─── Preferences ───────────────────────────────────────
+    theme: {
+      type: String,
+      enum: ["dark", "light"],
+      default: "dark",
     },
   },
   {
-    timestamps: true,
+    timestamps: true, // Adds createdAt and updatedAt
   }
 );
 
-// ─── Pre-save hook: hash password ─────────────────────────
+// ─── Pre-save hook: hash password before storing ───────────
+// Only runs when the password field has been modified (not on other updates)
 userSchema.pre("save", async function (next) {
-  // Only hash if the password field was modified
   if (!this.isModified("password")) return next();
-
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
 // ─── Instance method: compare candidate password ──────────
+// Used during login to verify the submitted password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // ─── Strip sensitive fields from JSON output ──────────────
+// Removes password and __v from any JSON serialization
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
